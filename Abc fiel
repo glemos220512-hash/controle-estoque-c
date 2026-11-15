@@ -1,0 +1,282 @@
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_ITEMS 100
+#define MAX_NAME 100
+
+typedef struct {
+    char nome[MAX_NAME];
+    int quantidade;
+} Item;
+
+Item estoque[MAX_ITEMS];
+int total = 0;
+
+// Procurar produto pelo nome
+int procurarItem(char nome[]) {
+    for (int i = 0; i < total; i++) {
+        if (strcmp(estoque[i].nome, nome) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// Carregar estoque do arquivo
+void carregarEstoque() {
+    FILE *arquivo = fopen("inventory.txt", "r");
+
+    if (arquivo == NULL) {
+        return;
+    }
+
+    while (total < MAX_ITEMS &&
+           fgets(estoque[total].nome, MAX_NAME, arquivo)) {
+
+        estoque[total].nome[
+            strcspn(estoque[total].nome, "\n")
+        ] = '\0';
+
+        if (fscanf(arquivo, "%d",
+                   &estoque[total].quantidade) != 1) {
+            break;
+        }
+
+        int c;
+        while ((c = fgetc(arquivo)) != '\n' && c != EOF) {
+        }
+
+        if (strlen(estoque[total].nome) > 0 &&
+            estoque[total].quantidade >= 0) {
+            total++;
+        }
+    }
+
+    fclose(arquivo);
+}
+
+// Salvar estoque no arquivo
+void salvarEstoque() {
+    FILE *arquivo = fopen("inventory.txt", "w");
+
+    if (arquivo == NULL) {
+        printf("Erro ao salvar o arquivo!\n");
+        return;
+    }
+
+    for (int i = 0; i < total; i++) {
+        fprintf(arquivo, "%s\n%d\n",
+                estoque[i].nome,
+                estoque[i].quantidade);
+    }
+
+    fclose(arquivo);
+}
+
+// Adicionar produto
+void adicionarItem() {
+    char nome[MAX_NAME];
+    int quantidade;
+
+    printf("Digite o nome do item: ");
+    fgets(nome, MAX_NAME, stdin);
+
+    nome[strcspn(nome, "\n")] = '\0';
+
+    if (strlen(nome) == 0) {
+        printf("Nome invalido!\n");
+        return;
+    }
+
+    printf("Digite a quantidade: ");
+
+    if (scanf("%d", &quantidade) != 1) {
+        printf("Quantidade invalida!\n");
+
+        while (getchar() != '\n') {
+        }
+
+        return;
+    }
+
+    while (getchar() != '\n') {
+    }
+
+    if (quantidade <= 0) {
+        printf("Quantidade invalida!\n");
+        return;
+    }
+
+    int indice = procurarItem(nome);
+
+    if (indice != -1) {
+        estoque[indice].quantidade += quantidade;
+    } else {
+        if (total >= MAX_ITEMS) {
+            printf("Limite de produtos atingido!\n");
+            return;
+        }
+
+        strcpy(estoque[total].nome, nome);
+        estoque[total].quantidade = quantidade;
+        total++;
+    }
+
+    salvarEstoque();
+
+    printf("Item adicionado com sucesso!\n");
+}
+
+// Remover produto
+void removerItem() {
+    char nome[MAX_NAME];
+    int quantidade;
+
+    printf("Digite o nome do item: ");
+    fgets(nome, MAX_NAME, stdin);
+
+    nome[strcspn(nome, "\n")] = '\0';
+
+    int indice = procurarItem(nome);
+
+    if (indice == -1) {
+        printf("Item nao encontrado.\n");
+        return;
+    }
+
+    printf("Digite a quantidade a ser removida: ");
+
+    if (scanf("%d", &quantidade) != 1) {
+        printf("Quantidade invalida!\n");
+
+        while (getchar() != '\n') {
+        }
+
+        return;
+    }
+
+    while (getchar() != '\n') {
+    }
+
+    if (quantidade <= 0) {
+        printf("Quantidade invalida!\n");
+        return;
+    }
+
+    if (quantidade > estoque[indice].quantidade) {
+        printf("Estoque insuficiente. Quantidade disponivel: %d\n",
+               estoque[indice].quantidade);
+        return;
+    }
+
+    estoque[indice].quantidade -= quantidade;
+
+    // Se chegar a zero, excluir o produto
+    if (estoque[indice].quantidade == 0) {
+
+        for (int i = indice; i < total - 1; i++) {
+            estoque[i] = estoque[i + 1];
+        }
+
+        total--;
+
+        salvarEstoque();
+
+        printf("Item removido do estoque!\n");
+
+    } else {
+
+        salvarEstoque();
+
+        printf("Quantidade atualizada com sucesso!\n");
+    }
+}
+
+// Listar estoque
+void listarEstoque() {
+    if (total == 0) {
+        printf("O estoque esta vazio.\n");
+        return;
+    }
+
+    printf("\n================================\n");
+    printf("          Estoque Atual\n");
+    printf("================================\n");
+
+    for (int i = 0; i < total; i++) {
+        printf("\nNome: %s\n", estoque[i].nome);
+        printf("Quantidade: %d\n",
+               estoque[i].quantidade);
+    }
+}
+
+// Programa principal
+int main() {
+    int opcao;
+    char resposta[20];
+
+    carregarEstoque();
+
+    while (1) {
+
+        printf("\n================================\n");
+        printf("        Controle de Estoque\n");
+        printf("================================\n");
+
+        printf("1. Adicionar Item\n");
+        printf("2. Remover Item\n");
+        printf("3. Listar Estoque\n");
+        printf("4. Sair\n");
+
+        printf("Opcao: ");
+
+        if (scanf("%d", &opcao) != 1) {
+            printf("Opcao invalida! Tente novamente.\n");
+
+            while (getchar() != '\n') {
+            }
+
+            continue;
+        }
+
+        while (getchar() != '\n') {
+        }
+
+        switch (opcao) {
+
+            case 1:
+                adicionarItem();
+                break;
+
+            case 2:
+                removerItem();
+                break;
+
+            case 3:
+                listarEstoque();
+                break;
+
+            case 4:
+                printf("Obrigado por usar o Controle de Estoque!\n");
+                return 0;
+
+            default:
+                printf("Opcao invalida! Tente novamente.\n");
+                continue;
+        }
+
+        printf("\nDeseja realizar outra operacao? (s/n): ");
+
+        if (fgets(resposta, sizeof(resposta), stdin) == NULL ||
+            tolower((unsigned char)resposta[0]) != 's') {
+
+            printf("Obrigado por usar o Controle de Estoque!\n");
+            break;
+        }
+    }
+
+    return 0;
+}
